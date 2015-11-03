@@ -71,17 +71,12 @@ GPIO15 -> 10 -> Gnd
 Flashing Mode (NODEMCU FIRMWARE PROGRAMMMER) 
 GPIO2 -> 3.3
 GPIO0 -> GND
-
-
-
 --]]
-
 
 swFAN = 1
 swCOOL = 2
 ledFAN = 5
 ledCOOL = 6
-
 
 gpio.write(swFAN, gpio.HIGH)
 gpio.write(swCOOL, gpio.HIGH)
@@ -111,12 +106,12 @@ srv:listen(80,function(conn)
         end
         buf = buf.."<title>Swampy</title><h1> Justin's ESP8266 Swampy Controller </h1>";
                  
-        if (gpio.read(ledFAN)==1) then
+        if (gpio.read(ledFAN)==0) then
                  buf = buf.."<p>GPI14 FAN LED is ON   ->  <a href=\"?pin=toggleFAN\"><button> Press for FAN mode OFF </button></a></p>";
         else
                  buf = buf.."<p>GPI14 FAN LED is OFF  ->  <a href=\"?pin=toggleFAN\"><button> Press for FAN mode ON  </button></a></p>";
         end
-        if (gpio.read(ledCOOL)==1) then
+        if (gpio.read(ledCOOL)==0) then
                  buf = buf.."<p>GPI12 COOL LED is ON  ->  <a href=\"?pin=toggleCOOL\"><button>Press for COOL mode OFF</button></a></p>";
         else
                  buf = buf.."<p>GPI12 COOL LED is OFF ->  <a href=\"?pin=toggleCOOL\"><button>Press for COOL mode ON </button></a></p>";
@@ -146,16 +141,16 @@ srv:listen(80,function(conn)
         local _on,_off = "",""
         if(_GET.pin == "toggleFAN")then
               gpio.write(swFAN, gpio.LOW);
-              tmr.delay(10000) --100 us to counter the switch debounce circuit 10000us for debug
+              tmr.delay(100000) --100000 us to counter the switch debounce circuit 10000us for debug
               gpio.write(swFAN, gpio.HIGH);
               print ("GPIO5 swFAN pulsed LOW");
-               buf = buf..[[<meta http-equiv="refresh" content="0; url=http://172.16.1.242/" />]]
+               buf = buf..[[<meta http-equiv="refresh" content="0; url=http://192.168.1.51/" />]]
         elseif(_GET.pin == "toggleCOOL")then
               gpio.write(swCOOL, gpio.LOW);
-              tmr.delay(10000) --100 us to counter the switch debounce circuit 10000us for debug
+              tmr.delay(100000) --100000 us to counter the switch debounce circuit 10000us for debug
               gpio.write(swCOOL, gpio.HIGH);
               print ("GPIO4 swCOOL pulsed LOW");
-               buf = buf..[[<meta http-equiv="refresh" content="0; url=http://172.16.1.242/" />]]
+               buf = buf..[[<meta http-equiv="refresh" content="0; url=http://192.168.1.51/" />]]
         elseif(_GET.pin == "ADC")then
                buf = adc.read(0)
               print ("ADC Request");
@@ -172,7 +167,7 @@ srv:listen(80,function(conn)
 end)
 
 
-tmr.alarm(0,10000, 1, function() 
+tmr.alarm(0,30000, 1, function() 
      
     conn=net.createConnection(net.TCP,0)
 		conn:on("receive",function(conn,payload) 
@@ -181,7 +176,7 @@ tmr.alarm(0,10000, 1, function()
 			print("end Payload")
 			conn:close() end)
   
-		conn:connect(80,"172.16.0.20")
+		conn:connect(80,"192.168.1.215")
 			print("FAN: " .. gpio.read(ledFAN))
 			print("COOL: " .. gpio.read(ledCOOL))
 			print(wifi.sta.getip())
@@ -191,7 +186,7 @@ tmr.alarm(0,10000, 1, function()
 			"&tmr_now=" .. tmr.now()/1000000 .. 
 			"&MEM=" .. node.heap() ..
 			"&ADC=" .. adc.read(0) .. 
-			" HTTP/1.1\r\nHost: 172.16.0.20\r\n Connection: keep-alive\r\nAccept: */*\r\n\r\n")
+			" HTTP/1.1\r\nHost: 192.168.1.215\r\n Connection: keep-alive\r\nAccept: */*\r\n\r\n")
 --		conn:close()	
 	print("MEM: "..node.heap())
     --collectgarbage();
