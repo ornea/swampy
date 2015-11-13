@@ -52,8 +52,8 @@ IO index     ESP8266 pin
 2    GPIO4  swCOOL Output
 3    GPIO0  
 4    GPIO2  
-5    GPIO14 ledFAN Input
-6    GPIO12 ledCOOL Input
+5    GPIO14 ledFAN Input  When 0 LED is on
+6    GPIO12 ledCOOL Input When 0 LED is on
 7    GPIO13
 8    GPIO15
 9    GPIO3
@@ -71,7 +71,9 @@ GPIO15 -> 10 -> Gnd
 Flashing Mode (NODEMCU FIRMWARE PROGRAMMMER) 
 GPIO2 -> 3.3
 GPIO0 -> GND
+
 --]]
+
 
 swFAN = 1
 swCOOL = 2
@@ -127,7 +129,7 @@ srv:listen(80,function(conn)
         a = x * x
         a = x / -25000
         b = x / 9
-        c = 7
+        c = 11
         y = a + b 
         y = y - c
         a = nil
@@ -135,8 +137,6 @@ srv:listen(80,function(conn)
         c = nil
    
         buf = buf .. "<p>ADC is ->  " .. x .. " Deg C is -> " .. y .. " <a href=\"?pin=ADC\"><button>ADC </button></a></p>"
-        y = nil
-        x = nil
           --adc.read(0)
         local _on,_off = "",""
         if(_GET.pin == "toggleFAN")then
@@ -151,43 +151,40 @@ srv:listen(80,function(conn)
               gpio.write(swCOOL, gpio.HIGH);
               print ("GPIO4 swCOOL pulsed LOW");
                buf = buf..[[<meta http-equiv="refresh" content="0; url=http://192.168.1.51/" />]]
-        elseif(_GET.pin == "ADC")then
-               buf = adc.read(0)
-              print ("ADC Request");
-               --buf = buf..[[<meta http-equiv="refresh" content="0; url=http://172.16.1.242/" />]]
-        
+        elseif(_GET.pin == "ADC")then --Just gives plain text Status for Easy Read IoT-Buddy
+               --buf = adc.read(0)
+               buf = " Deg C is -> " .. y .. "\n";
+               if (gpio.read(ledFAN)==0) then
+                 buf = buf.." FAN is ON\n";
+               else
+                 buf = buf.." FAN is OFF\n";
+               end
+               if (gpio.read(ledCOOL)==0) then
+                 buf = buf.." COOL is ON\n";
+               else
+                 buf = buf.." COOL is OFF\n";
+               end 
+              print ("STATUS Request");
         end
+        y = nil
+        x = nil
+
         print ("Web Server Accessed");
        
         print(wifi.sta.getip());
+        --[[
+		temp = "http://192.168.1.51:80/?pin=ADC";
+ 		header = "  HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\nRefresh: 5\r\n";
+		header ..= "Content-Length:";
+		header ..= string.len(buf);--(int)(content.length());
+		header ..= "\r\n\r\n";
+		client:send(header);
+          --]]
+          client:send("HTTP/1.1 200 OK\r\n");
+          client:send("Content-type: text/html\r\n");
+          client:send("Connection: close\r\n\r\n"); 
         client:send(buf);
         client:close();
        -- collectgarbage();
     end)
-end)
-
-
-tmr.alarm(0,30000, 1, function() 
-     
-    conn=net.createConnection(net.TCP,0)
-		conn:on("receive",function(conn,payload) 
-			print("payload: ") 
-			print(payload) 
-			print("end Payload")
-			conn:close() end)
-  
-		conn:connect(80,"192.168.1.215")
-			print("FAN: " .. gpio.read(ledFAN))
-			print("COOL: " .. gpio.read(ledCOOL))
-			print(wifi.sta.getip())
-
-		conn:send("GET /cgi-bin/logesp.pl?FAN=" .. gpio.read(ledFAN) ..
-			"&COOL=" .. gpio.read(ledCOOL) .. 
-			"&tmr_now=" .. tmr.now()/1000000 .. 
-			"&MEM=" .. node.heap() ..
-			"&ADC=" .. adc.read(0) .. 
-			" HTTP/1.1\r\nHost: 192.168.1.215\r\n Connection: keep-alive\r\nAccept: */*\r\n\r\n")
---		conn:close()	
-	print("MEM: "..node.heap())
-    --collectgarbage();
 end)
